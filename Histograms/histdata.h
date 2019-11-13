@@ -30,6 +30,8 @@ public:
     qint16 getRightLimit(){ return rightLimit;}
     double getSampleMean();
     double getSampleVariance();
+    double getSigma();
+    double getFWHM();
 
     quint32& operator[] (const quint16 index);      //  return nEvents per bin
 

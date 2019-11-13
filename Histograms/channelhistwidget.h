@@ -29,6 +29,7 @@ public:
     void Update();
     void AddEvent(qint16 charge, qint16 time);
     void PrintInfo(bool onlyStat = false);
+    QString GetStatInfo();
 
 private slots:
     void channelIDButton_clicked();

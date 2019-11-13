@@ -2,6 +2,10 @@
 
 ChannelHistWidget::ChannelHistWidget(QString _chID,QWidget *parent) : QWidget(parent)
 {
+    QSharedPointer<QCPAxisTickerFixed> fixedTicker(new QCPAxisTickerFixed);
+    fixedTicker->setTickStep(2.0);
+    fixedTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
+
     setupWindow = new SetupChannelWindow;
     chID = _chID;
     box = new QVBoxLayout();
@@ -31,17 +35,23 @@ ChannelHistWidget::ChannelHistWidget(QString _chID,QWidget *parent) : QWidget(pa
     pen.setColor(QColor(Qt::darkBlue));
 
     chargeHist->xAxis->setLabel("Charge");
+    chargeHist->xAxis->setTicker(fixedTicker);
+    chargeHist->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     chargeHist->yAxis->setLabel("N_inputs");
     chargeBars->setPen(pen);
     chargeBars->setBrush(QColor(Qt::darkBlue));
 
     timeHist->xAxis->setLabel("Time");
+    timeHist->xAxis->setTicker(fixedTicker);
+    timeHist->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     timeHist->yAxis->setLabel("N_inputs");
     timeBars->setPen(pen);
     timeBars->setBrush(QColor(Qt::darkBlue));
 
     chargeTimeHist->xAxis->setLabel("Charge");
     chargeTimeHist->yAxis->setLabel("Time");
+    chargeTimeHist->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+
 
     chargeHist->xAxis->setRange(chargeData->getLeftLimit(),chargeData->getRightLimit());
     timeHist->xAxis->setRange(timeData->getLeftLimit(),timeData->getRightLimit());
@@ -154,15 +164,33 @@ void ChannelHistWidget::PrintInfo(bool onlyStat)
         timeData->printInfo(0,0,onlyStat);
 }
 
+QString ChannelHistWidget::GetStatInfo()
+{
+    QString statStr;
+    statStr.append("@ "+chargeData->name+"\n");
+    statStr.append("Sample mean "+QString::number(chargeData->getSampleMean())+"\n");
+    statStr.append("Sample variance "+QString::number(chargeData->getSampleVariance())+"\n");
+    statStr.append("Sigma "+QString::number(chargeData->getSigma())+"\n");
+    statStr.append("FWHM "+QString::number(chargeData->getFWHM())+"\n");
+    statStr.append("\n");
+
+    return statStr;
+}
+
 void ChannelHistWidget::channelIDButton_clicked()
 {
-    qDebug()<<"Clicked";
-    setupWindow->set_chID(chID);
-    setupWindow->set_binWidth_charge(QString::number(chargeData->getbinWidth()));
-    setupWindow->set_binWidth_time(QString::number(timeData->getbinWidth()));
-    setupWindow->set_nBins_charge(QString::number(chargeData->getnBins()));
-    setupWindow->set_nBins_time(QString::number(timeData->getnBins()));
-    setupWindow->show();
+//    qDebug()<<"Clicked";
+    if(setupWindow->isHidden()){
+        setupWindow->set_chID(chID);
+        setupWindow->set_binWidth_charge(QString::number(chargeData->getbinWidth()));
+        setupWindow->set_binWidth_time(QString::number(timeData->getbinWidth()));
+        setupWindow->set_nBins_charge(QString::number(chargeData->getnBins()));
+        setupWindow->set_nBins_time(QString::number(timeData->getnBins()));
+        setupWindow->show();
+    }
+    else {
+        setupWindow->activateWindow();
+    }
 }
 
 void ChannelHistWidget::HideZeroBars()
@@ -211,7 +239,7 @@ void ChannelHistWidget::binWidth_charge_was_changed(const QString& _binWidth)
     setupWindow->set_nBins_charge(QString::number(chargeData->getnBins()));
     setupWindow->set_nBins_time(QString::number(timeData->getnBins()));
     Update();
-    chargeData->printInfo();
+//    chargeData->printInfo();
 }
 
 void ChannelHistWidget::binWidth_time_was_changed(const QString& _binWidth)
@@ -222,7 +250,7 @@ void ChannelHistWidget::binWidth_time_was_changed(const QString& _binWidth)
     setupWindow->set_nBins_charge(QString::number(chargeData->getnBins()));
     setupWindow->set_nBins_time(QString::number(timeData->getnBins()));
     Update();
-    timeData->printInfo();
+//    timeData->printInfo();
 }
 
 void ChannelHistWidget::nBins_charge_was_changed(const QString& _nBins)
@@ -233,7 +261,7 @@ void ChannelHistWidget::nBins_charge_was_changed(const QString& _nBins)
     setupWindow->set_nBins_charge(QString::number(chargeData->getnBins()));
     setupWindow->set_nBins_time(QString::number(timeData->getnBins()));
     Update();
-    chargeData->printInfo(0,1);
+//    chargeData->printInfo(0,1);
 }
 
 void ChannelHistWidget::nBins_time_was_changed(const QString& _nBins)
@@ -244,7 +272,7 @@ void ChannelHistWidget::nBins_time_was_changed(const QString& _nBins)
     setupWindow->set_nBins_charge(QString::number(chargeData->getnBins()));
     setupWindow->set_nBins_time(QString::number(timeData->getnBins()));
     Update();
-    timeData->printInfo();
+//    timeData->printInfo();
 }
 
 ChannelHistWidget::~ChannelHistWidget()

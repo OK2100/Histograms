@@ -38,8 +38,9 @@ private:
     QWidget* centralWidget = new QWidget;
     QHBoxLayout* grid = new QHBoxLayout;
     ChannelHistWidget* channel[12];
-    char* filePath;                 //  Path and name. It breaks somewhere in DataBlock lib
-    QString filePathSave;           //  Save of 'filePath'
+//    const char* filePath;                 //  Path and name. It breaks somewhere in DataBlock lib
+    QString filePath;
+//    QString filePathSave;           //  Save of 'filePath'
     QString fileType;
 
     quint8 nAddedChannels = 0;

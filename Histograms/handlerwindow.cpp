@@ -1,11 +1,21 @@
 #include "handlerwindow.h"
 
-
+QString HexStrtoBinStr(QString inp){
+    QString result;
+    bool ok;
+    for(int i=0;i<inp.size();i++){
+        QString tmp = inp.mid(i,1);
+        result.append(QString("%1").arg(tmp.toLong(&ok,16),4,2,QLatin1Char('0')));
+    }
+    return result;
+};
 
 HandlerWindow::HandlerWindow(HandlerWindow* prevWindow,QWidget *parent) :
     QMainWindow(parent)
 {
+    if(prevWindow!=nullptr) {
     connect(prevWindow,SIGNAL(showNewWindow(quint8)),this,SLOT(startNewWindow(quint8)));
+    }
     SetUp();
 }
 
@@ -126,7 +136,7 @@ void HandlerWindow::ReadBinaryFile()
     EventData* pData;
 
     DataBlockFT0 *dataBlock = new DataBlockFT0;
-    DataBlockFileReaderFT0 *rawReader = new DataBlockFileReaderFT0(filePath,"",dataBlock);
+    DataBlockFileReaderFT0 *rawReader = new DataBlockFileReaderFT0(qPrintable(filePath),"",dataBlock);
 
 
     for(quint16 i=0;i<12;i++) {
@@ -167,9 +177,8 @@ void HandlerWindow::ReadTxtFile()
             channel[i]->Clear();
         }
     }
-
     QFile file(filePath);
-    QString str,strFirstChannel,strSecondChannel;
+    QString gbtword,firstch_gbt,secondch_gbt;
     quint16 nWords,channelID;
     DataConversion convertor;
     bool ok;
@@ -177,29 +186,32 @@ void HandlerWindow::ReadTxtFile()
     if(file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QTextStream readStream(&file);
-
         while(!file.atEnd()) {
-            readStream >> str;
-            if(strFirstChannel == "E000000000"){continue;}
-            if(str.left(1)=="F"){
-                nWords = str.mid(1,1).toULong(&ok,16);
+//        for (quint8 j=0;j<100;j++){
+            gbtword = readStream.readLine();
+//            qDebug() << gbtword;
 
+            if(gbtword.left(10) == "E000000000"){continue;}
+            if(gbtword.left(3) == "DAF"){continue;}
+
+            if(gbtword.left(1)=="F"){
+                nWords = gbtword.mid(1,1).toUShort(&ok,16);
                 for(quint16 i=0;i<nWords;i++) {
-                    readStream >> str;
+                    gbtword = readStream.readLine();
+//                    qDebug() << gbtword;
 
                     // divide GBT word to 2 channels
-                    strFirstChannel = str.left(10);
-                    strSecondChannel = str.right(10);
+                    firstch_gbt = gbtword.left(10);
+                    secondch_gbt = gbtword.right(10);
 
                     // convert hex to binary QString
-                    strFirstChannel = QString("%1").arg(strFirstChannel.toLongLong(&ok,16),40,2,QLatin1Char('0'));
-                    strSecondChannel = QString("%1").arg(strSecondChannel.toLongLong(&ok,16),40,2,QLatin1Char('0'));
-
+                    firstch_gbt = HexStrtoBinStr(firstch_gbt);
+                    secondch_gbt = HexStrtoBinStr(secondch_gbt);
 
                     // get time, charge and channelID for first channel in gbt word
-                    convertor.dataBlocks.time = strFirstChannel.right(12).toULongLong(&ok,2);
-                    convertor.dataBlocks.charge = strFirstChannel.mid(15,13).toULongLong(&ok,2);
-                    channelID = strFirstChannel.left(4).toULong(&ok,2);
+                    convertor.dataBlocks.time = firstch_gbt.right(12).toULongLong(&ok,2);
+                    convertor.dataBlocks.charge = firstch_gbt.mid(15,13).toULongLong(&ok,2);
+                    channelID = firstch_gbt.left(4).toUShort(&ok,2);
 
                     if((channelID >= 1) && (channelID<=12)) {
                         if(channel[channelID-1]!=nullptr) channel[channelID-1]->
@@ -207,9 +219,9 @@ void HandlerWindow::ReadTxtFile()
                     }
 
                     // get time, charge and channelID for second channel in gbt word
-                    convertor.dataBlocks.time = strSecondChannel.right(12).toULongLong(&ok,2);
-                    convertor.dataBlocks.charge = strSecondChannel.mid(15,13).toULongLong(&ok,2);
-                    channelID = strSecondChannel.left(4).toULong(&ok,2);
+                    convertor.dataBlocks.time = secondch_gbt.right(12).toULongLong(&ok,2);
+                    convertor.dataBlocks.charge = secondch_gbt.mid(15,13).toULongLong(&ok,2);
+                    channelID = secondch_gbt.left(4).toUShort(&ok,2);
 
                     if(channelID >= 1 && channelID<=12) {
                         if(channel[channelID-1]!=nullptr) channel[channelID-1]->
@@ -217,9 +229,10 @@ void HandlerWindow::ReadTxtFile()
                     }
                 }
             }
-            else {
-            }
-        }
+        } // end of while
+    } // end of if
+    else {
+        qDebug() << "File is not opened";
     }
     file.close();
     PlotHistograms();
@@ -257,25 +270,25 @@ bool HandlerWindow::openSourceFile()
     QString enteredFilePath = QFileDialog::getOpenFileName(this,
                                                     QString::fromUtf8("Open file"),
                                                     QDir::currentPath(),
-                                                    "GBT files (*.GBT);;Binary files (*.bin);;All files (*.*)",
+                                                    "GBT files (*.GBT *.gbt);;Binary files (*.bin);;All files (*.*)",
                                                     &fileType);
-    filePathSave = enteredFilePath;
-    filePath = filePathSave.toUtf8().data();
-    if(filePathSave.isEmpty()) { return 0; }
+    filePath = enteredFilePath;
+//    filePathSave = enteredFilePath;
+//    filePath = filePathSave.toUtf8().data();
+//    if(filePathSave.isEmpty()) { return 0; }
+    if(filePath.isEmpty()) { return 0; }
     else { return 1; }
 }
 
 void HandlerWindow::readFile()
 {
-    if(filePathSave.isEmpty()) {
+//    if(filePathSave.isEmpty()) {
+    if(filePath.isEmpty()) {
         if(!openSourceFile()) return;       // File is not choosen
-    }
-    else {
-        filePath = filePathSave.toUtf8().data();
     }
 
     if(fileType == "Binary files (*.bin)"){ ReadBinaryFile();}
-    if(fileType == "GBT files (*.GBT)"){ ReadTxtFile();}
+    if(fileType == "GBT files (*.GBT *.gbt)"){ ReadTxtFile();}
 }
 
 void HandlerWindow::addChannel()
@@ -289,7 +302,10 @@ void HandlerWindow::addChannel()
     bool bOk;
     QStringList listID = {"1","2","3","4","5","6","7","8","9","10","11","12"};
     QString chID=QInputDialog::getItem(this,tr("Input"),"Add channel:",listID,nextChannelID-1,0,&bOk);
-    if(!bOk){ qDebug() << "Cancel";return;}
+    if(!bOk){
+//        qDebug() << "Cancel";
+        return;
+    }
 
     if(channel[chID.toInt()-1]==nullptr) {
         channel[chID.toInt()-1] = new ChannelHistWidget(chID);
@@ -307,7 +323,10 @@ void HandlerWindow::removeChannel()
     QStringList listID = {"1","2","3","4","5","6","7","8","9","10","11","12"};
     QString chID=QInputDialog::getItem(this,"Delete","Remove channel:",listID,nextChannelID-2,0,&bOk);
 
-    if(!bOk){ qDebug() << "Cancel";return;}
+    if(!bOk){
+//        qDebug() << "Cancel";
+        return;
+    }
 
     if(channel[chID.toInt()-1] != nullptr){
         delete channel[chID.toInt()-1];
@@ -348,7 +367,10 @@ void HandlerWindow::reset()
     QStringList listID = {"1","2","3","4","5","6","7","8","9","10","11","12"};
     QString chID=QInputDialog::getItem(this,"Reset","Reset channel:",listID,0,0,&bOk);
 
-    if(!bOk){ qDebug() << "Cancel";return;}
+    if(!bOk){
+//        qDebug() << "Cancel";
+        return;
+    }
 
     if(channel[chID.toInt()-1]!=nullptr){
         channel[chID.toInt()-1]->Clear();
@@ -387,12 +409,20 @@ void HandlerWindow::hideZeroBars()
 
 void HandlerWindow::showStatWindow()
 {
+    QString text;
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Stat");
+    msgBox.show();
     for(quint16 i=0;i<12;i++) {
         if(channel[i]!=nullptr){
-            qDebug()<<"";
-            channel[i]->PrintInfo(1);
+            text.append(channel[i]->GetStatInfo());
+//            qDebug()<<"";
+//            channel[i]->PrintInfo(1);
         }
     }
+    msgBox.setText(text);
+    msgBox.exec();
+
 }
 
 HandlerWindow::~HandlerWindow()

@@ -137,6 +137,16 @@ double HistData::getSampleVariance()
     return sampleVariance;
 }
 
+double HistData::getSigma()
+{
+    return pow(getSampleVariance(),0.5);
+}
+
+double HistData::getFWHM()
+{
+    return 2.355*getSigma();
+}
+
 void HistData::calcbinWidth()
 {
     binWidth=(rightLimit-leftLimit)/(1.0*nBins);
