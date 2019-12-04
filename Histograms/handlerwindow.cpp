@@ -89,6 +89,11 @@ void HandlerWindow::SetUp()
     optionsBar->addAction(updateAction);
     connect(updateAction, SIGNAL(triggered()),this,SLOT(updateScreen()));
 
+    chooseADCAction=new QAction("&Choose ADC number",this);
+    chooseADCAction->setShortcut(tr("Ctrl+d"));
+    optionsBar->addAction(chooseADCAction);
+    connect(chooseADCAction, SIGNAL(triggered()),this,SLOT(chooseADC()));
+
 
     lbl.setText("\n"
                 "\n"
@@ -181,6 +186,7 @@ void HandlerWindow::ReadTxtFile()
     QString gbtword,firstch_gbt,secondch_gbt;
     quint16 nWords,channelID;
     DataConversion convertor;
+    quint8 tADCNum;
     bool ok;
 
     if(file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -198,7 +204,7 @@ void HandlerWindow::ReadTxtFile()
                 nWords = gbtword.mid(1,1).toUShort(&ok,16);
                 for(quint16 i=0;i<nWords;i++) {
                     gbtword = readStream.readLine();
-//                    qDebug() << gbtword;
+                    qDebug() << gbtword;
 
                     // divide GBT word to 2 channels
                     firstch_gbt = gbtword.left(10);
@@ -208,25 +214,52 @@ void HandlerWindow::ReadTxtFile()
                     firstch_gbt = HexStrtoBinStr(firstch_gbt);
                     secondch_gbt = HexStrtoBinStr(secondch_gbt);
 
+//                    qDebug() << firstch_gbt;
+
                     // get time, charge and channelID for first channel in gbt word
                     convertor.dataBlocks.time = firstch_gbt.right(12).toULongLong(&ok,2);
                     convertor.dataBlocks.charge = firstch_gbt.mid(15,13).toULongLong(&ok,2);
                     channelID = firstch_gbt.left(4).toUShort(&ok,2);
+                    tADCNum = firstch_gbt.mid(14,1).toUShort();
 
-                    if((channelID >= 1) && (channelID<=12)) {
-                        if(channel[channelID-1]!=nullptr) channel[channelID-1]->
-                                            AddEvent(convertor.dataReal.charge,convertor.dataReal.time);
+//                    qDebug() << tADCNum;
+
+                    if(ADCNumber ==2){
+                        if((channelID >= 1) && (channelID<=12)) {
+                            if(channel[channelID-1]!=nullptr) channel[channelID-1]->
+                                                AddEvent(convertor.dataReal.charge,convertor.dataReal.time);
+                        }
                     }
+                    else{
+                        if((channelID >= 1) && (channelID<=12) && (tADCNum == ADCNumber)) {
+                            if(channel[channelID-1]!=nullptr) channel[channelID-1]->
+                                                AddEvent(convertor.dataReal.charge,convertor.dataReal.time);
+                        }
+                    }
+
+//                    qDebug() << secondch_gbt;
 
                     // get time, charge and channelID for second channel in gbt word
                     convertor.dataBlocks.time = secondch_gbt.right(12).toULongLong(&ok,2);
                     convertor.dataBlocks.charge = secondch_gbt.mid(15,13).toULongLong(&ok,2);
                     channelID = secondch_gbt.left(4).toUShort(&ok,2);
+                    tADCNum = secondch_gbt.mid(14,1).toUShort();
 
-                    if(channelID >= 1 && channelID<=12) {
-                        if(channel[channelID-1]!=nullptr) channel[channelID-1]->
-                                            AddEvent(convertor.dataReal.charge,convertor.dataReal.time);
+//                    qDebug() << tADCNum;
+
+                    if(ADCNumber ==2){
+                        if(channelID >= 1 && channelID<=12) {
+                            if(channel[channelID-1]!=nullptr) channel[channelID-1]->
+                                                AddEvent(convertor.dataReal.charge,convertor.dataReal.time);
+                        }
                     }
+                    else{
+                        if((channelID >= 1) && (channelID<=12) && (tADCNum == ADCNumber)) {
+                            if(channel[channelID-1]!=nullptr) channel[channelID-1]->
+                                                AddEvent(convertor.dataReal.charge,convertor.dataReal.time);
+                        }
+                    }
+
                 }
             }
         } // end of while
@@ -404,6 +437,24 @@ void HandlerWindow::hideZeroBars()
             channel[i]->Update();
         }
     }
+
+}
+
+void HandlerWindow::chooseADC()
+{
+
+    bool bOk;
+    QStringList listID = {"0","1","2"};
+    QString adcNum=QInputDialog::getItem(this,"ADC","Choose ADC number:",listID,0,0,&bOk);
+
+    if(!bOk){
+//        qDebug() << "Cancel";
+        return;
+    }
+
+    quint8 adc = adcNum.toUShort();
+//    qDebug() << adc;
+    ADCNumber = adc;
 
 }
 

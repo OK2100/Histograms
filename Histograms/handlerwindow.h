@@ -30,6 +30,7 @@ public:
 public slots:                       //  Slots for connecting with other progs
     void updateScreen();
     void addEvent(quint8 chID,qint16 charge,qint16 time);
+    void chooseADC();
 
 signals:
     void showNewWindow(quint8 firstChannelID);
@@ -45,6 +46,7 @@ private:
 
     quint8 nAddedChannels = 0;
     quint8 nextChannelID = 1;
+    quint8 ADCNumber = 2;       //  2 mean all
 
     HandlerWindow* secondWindow;
 
@@ -73,6 +75,7 @@ private:
     QAction* resetAction;
     QAction* resetAllAction;
     QAction* hideZeroBarsAction;
+    QAction* chooseADCAction;
 
     QLabel lbl;                     //  Opening label
 //----------------------------------------------------
