@@ -192,13 +192,16 @@ void HandlerWindow::ReadTxtFile()
     if(file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QTextStream readStream(&file);
+
         while(!file.atEnd()) {
 //        for (quint8 j=0;j<100;j++){
             gbtword = readStream.readLine();
 //            qDebug() << gbtword;
 
-            if(gbtword.left(10) == "E000000000"){continue;}
-            if(gbtword.left(3) == "DAF"){continue;}
+            if (gbtword.left(1) == "E")    {continue;} //trigger
+            if (gbtword.left(4) == "FFFF") {continue;} //trailer
+            if (gbtword.left(1) == "0")    {continue;} //leftover
+            if (gbtword.left(3) == "DAF")  {continue;}
 
             if(gbtword.left(1)=="F"){
                 nWords = gbtword.mid(1,1).toUShort(&ok,16);
